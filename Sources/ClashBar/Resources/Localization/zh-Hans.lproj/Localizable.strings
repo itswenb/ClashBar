@@ -201,6 +201,7 @@
 "ui.footer.core_mihomo" = "MIHOMO %@";
 "ui.footer.version" = "v%@";
 "ui.footer.resize_height" = "上下拖动调整菜单高度（切换页签后自动适配）";
+"ui.header.move_horizontal" = "按住左右拖动移动菜单（也可使用左右方向键）";
 "ui.footer.version_update_help" = "查看 v%@ 版本说明";
 "ui.footer.version_update_accessibility" = "当前版本 v%@，可更新到 v%@。";
 "ui.footer.core_upgrade.running" = "更新中...";

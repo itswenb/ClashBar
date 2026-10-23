@@ -1,5 +1,16 @@
 import AppKit
 
+enum PanelGeometry {
+    // Share the horizontal limits between placement and dragging. / 定位与拖动使用相同的横向边界。
+    static func clampedHorizontalOrigin(
+        _ proposedX: CGFloat, panelWidth: CGFloat, visibleFrame: CGRect, padding: CGFloat) -> CGFloat
+    {
+        let minX = visibleFrame.minX + padding
+        let maxX = max(minX, visibleFrame.maxX - padding - panelWidth)
+        return min(max(proposedX, minX), maxX)
+    }
+}
+
 enum PanelAttachmentSide: Equatable {
     case left
     case right
@@ -62,12 +73,10 @@ struct PanelAnchorContext {
         options: MenuBarDropdownPlacementOptions)
         -> PanelPlacement
     {
-        let minX = self.visibleFrame.minX + options.horizontalPadding
-        let maxX = self.visibleFrame.maxX - options.horizontalPadding - panelSize.width
-
         let centeredX = self.anchorFrameOnScreen.midX - panelSize.width / 2
         let stableX = options.preserveHorizontalPosition ? (options.lockedOriginX ?? centeredX) : centeredX
-        let clampedX = min(max(stableX, minX), maxX)
+        let clampedX = PanelGeometry.clampedHorizontalOrigin(
+            stableX, panelWidth: panelSize.width, visibleFrame: self.visibleFrame, padding: options.horizontalPadding)
 
         let anchorTopY = self.statusBarBottomY - options.verticalSpacing
         let minY = self.visibleFrame.minY + options.screenPadding

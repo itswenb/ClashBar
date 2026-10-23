@@ -23,6 +23,27 @@ private struct FolderTabShape: Shape {
     }
 }
 
+private struct FolderTabDivider: Shape {
+    var selectionIndex: CGFloat
+
+    var animatableData: CGFloat {
+        get { self.selectionIndex }
+        set { self.selectionIndex = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let tabWidth = rect.width / CGFloat(RootTab.allCases.count)
+        let startX = rect.minX + self.selectionIndex * tabWidth
+        let y = rect.maxY - T.stroke / 2
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: y))
+        path.addLine(to: CGPoint(x: startX, y: y))
+        path.move(to: CGPoint(x: startX + tabWidth, y: y))
+        path.addLine(to: CGPoint(x: rect.maxX, y: y))
+        return path
+    }
+}
+
 extension MenuBarRootView {
     private struct SegmentedControlStyle {
         let isMode: Bool
@@ -139,6 +160,14 @@ extension MenuBarRootView {
             }
         }
         .frame(width: contentWidth)
+        .transaction { transaction in
+            // Keep labels fixed during hover and panel resizing. / 悬停与面板缩放时保持标签位置固定。
+            transaction.animation = nil
+            transaction.disablesAnimations = true
+        }
+        .background(alignment: .leading) {
+            self.tabSelectionBackground
+        }
     }
 
     func tabSegmentButton(_ tab: RootTab) -> some View {
@@ -152,39 +181,39 @@ extension MenuBarRootView {
             self.rootViewModel.syncCurrentTab(tab)
         } label: {
             Text(self.tr(tab.titleKey))
-                .font(.app(size: T.FontSize.body, weight: selected ? .semibold : .medium))
+                .font(.app(size: T.FontSize.body, weight: .semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(T.minimumScale)
                 .foregroundStyle(self.segmentedLabelColor(style: style, selected: selected, hovered: hovered))
                 .frame(maxWidth: .infinity)
                 .frame(height: style.rowHeight)
-                .background(self.tabButtonBackground(selected: selected))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
         .onHover { hoveredTab = self.nextHovered(current: hoveredTab, target: tab, isHovering: $0) }
-        .animation(self.tabSelectionAnimation, value: self.rootViewModel.currentTab)
-        .animation(.easeOut(duration: 0.12), value: hoveredTab)
     }
 
-    @ViewBuilder
-    private func tabButtonBackground(selected: Bool) -> some View {
-        if selected {
+    private var tabSelectionBackground: some View {
+        let index = CGFloat(RootTab.allCases.firstIndex(of: self.rootViewModel.currentTab) ?? 0)
+        let tabWidth = self.contentWidth / CGFloat(RootTab.allCases.count)
+
+        // Animate one persistent background; labels keep their layout. / 仅移动同一个背景，文字布局保持稳定。
+        return ZStack(alignment: .leading) {
+            FolderTabDivider(selectionIndex: index)
+                .stroke(self.nativeSeparator.opacity(0.65), lineWidth: T.stroke)
             FolderTabShape()
                 .fill(self.nativeControlFill.opacity(isDarkAppearance ? 0.54 : 0.38))
                 .overlay {
                     FolderTabShape().stroke(self.nativeSeparator.opacity(0.65), lineWidth: T.stroke)
                 }
-                .matchedGeometryEffect(
-                    id: SegmentedControlStyle.tab.selectionBackgroundID,
-                    in: self.segmentedSelectionNamespace)
-        } else {
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                self.nativeSeparator.opacity(0.65).frame(height: T.stroke)
-            }
+                .frame(width: tabWidth)
+                .offset(x: index * tabWidth)
         }
+        .frame(width: self.contentWidth, height: SegmentedControlStyle.tab.rowHeight)
+        .animation(self.tabSelectionAnimation, value: self.rootViewModel.currentTab)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder

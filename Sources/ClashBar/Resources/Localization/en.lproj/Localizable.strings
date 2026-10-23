@@ -199,6 +199,7 @@
 "ui.footer.core_mihomo" = "MIHOMO %@";
 "ui.footer.version" = "v%@";
 "ui.footer.resize_height" = "Drag vertically to resize the menu (auto-fit when switching tabs)";
+"ui.header.move_horizontal" = "Drag left or right to move the menu (arrow keys also supported)";
 "ui.footer.version_update_help" = "Open release notes for v%@";
 "ui.footer.version_update_accessibility" = "Current version v%@. Update available v%@.";
 "ui.footer.core_upgrade.running" = "Updating...";

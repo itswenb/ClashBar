@@ -2,6 +2,7 @@ import SwiftUI
 
 enum MenuBarLayoutTokens {
     static let panelWidth: CGFloat = 360
+    static let panelDragHandleHeight: CGFloat = 16
 
     static let space1: CGFloat = 1
     static let space2: CGFloat = 2

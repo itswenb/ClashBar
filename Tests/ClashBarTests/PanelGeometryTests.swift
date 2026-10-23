@@ -5,6 +5,30 @@ import XCTest
 final class PanelGeometryTests: XCTestCase {
     private let visibleFrame = CGRect(x: 0, y: 0, width: 1440, height: 900)
 
+    func testHorizontalDraggingClampsOnSecondaryScreenAndKeepsWidth() {
+        let screen = CGRect(x: -1440, y: -900, width: 1440, height: 900)
+        for (proposed, expected): (CGFloat, CGFloat) in [(-2000, -1432), (-800, -800), (100, -368)] {
+            XCTAssertEqual(PanelGeometry.clampedHorizontalOrigin(
+                proposed, panelWidth: 360, visibleFrame: screen, padding: 8), expected)
+        }
+    }
+
+    func testMenuPlacementPreservesDraggedOriginDuringHeightChanges() {
+        let context = PanelAnchorContext(
+            visibleFrame: self.visibleFrame,
+            anchorFrameOnScreen: CGRect(x: 1300, y: 900, width: 30, height: 24), hostWindowFrame: nil)
+        for height: CGFloat in [280, 480, 640] {
+            let placement = context.menuBarDropdownPlacement(
+                panelSize: CGSize(width: 360, height: height),
+                options: MenuBarDropdownPlacementOptions(
+                    horizontalPadding: 8, verticalSpacing: 0, screenPadding: 10,
+                    lockedOriginX: 600, preserveHorizontalPosition: true))
+            XCTAssertEqual(placement.frame.minX, 600)
+            XCTAssertEqual(placement.frame.maxY, self.visibleFrame.maxY)
+            XCTAssertEqual(placement.frame.width, 360)
+        }
+    }
+
     func testDropdownStartsBelowControlAndAlignsLeadingEdge() {
         let context = PanelAnchorContext(
             visibleFrame: self.visibleFrame,

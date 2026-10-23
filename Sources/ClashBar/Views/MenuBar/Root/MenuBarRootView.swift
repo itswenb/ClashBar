@@ -115,11 +115,16 @@ struct MenuBarRootView: TranslatingView {
 
     private var panelSections: some View {
         VStack(spacing: 0) {
-            MenuBarHeaderView(
-                showRemoteMachineManager: self.$showRemoteMachineManager,
-                isSwitchingMachine: self.$isSwitchingMachine)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .reportHeight { updateSectionHeight($0, target: .header) }
+            VStack(spacing: 0) {
+                PanelHorizontalDragHandle(label: self.tr("ui.header.move_horizontal"))
+                    .frame(width: 64, height: T.panelDragHandleHeight)
+                    .frame(maxWidth: .infinity)
+                MenuBarHeaderView(
+                    showRemoteMachineManager: self.$showRemoteMachineManager,
+                    isSwitchingMachine: self.$isSwitchingMachine)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .reportHeight { updateSectionHeight($0, target: .header) }
 
             modeAndTabSection
                 .frame(maxWidth: .infinity, alignment: .leading)
