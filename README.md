@@ -126,6 +126,7 @@ brew uninstall --zap --cask clashbar
 
 ```sh
 # 依赖：Xcode / Swift 6.2+、macOS 13+
+swift test                 # 运行连接解析、弹窗定位与菜单交互回归测试（UI 测试需图形会话）
 make build                 # 产出 dist/ClashBar.app（默认不含 Core）
 make build WITH_CORE=1     # 打包内置 mihomo
 make dist WITH_CORE=1      # app + dmg

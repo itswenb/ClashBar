@@ -79,6 +79,32 @@ struct PanelAnchorContext {
             attachmentSide: nil)
     }
 
+    func belowAnchorPlacement(
+        contentSize: CGSize,
+        preferredWidth: CGFloat?,
+        maximumHeight: CGFloat?,
+        screenPadding: CGFloat,
+        verticalSpacing: CGFloat)
+        -> PanelPlacement
+    {
+        let minX = self.visibleFrame.minX + screenPadding
+        let minY = self.visibleFrame.minY + screenPadding
+        let panelWidth = min(max(1, preferredWidth ?? contentSize.width), self.visibleFrame.width - screenPadding * 2)
+        let anchorBottomY = self.anchorFrameOnScreen.minY - verticalSpacing
+        let availableHeight = max(1, anchorBottomY - minY)
+        let preferredHeight = min(
+            contentSize.height,
+            maximumHeight.map { $0 + screenPadding * 2 } ?? contentSize.height)
+        let panelHeight = min(max(40, preferredHeight), availableHeight)
+        let maxX = self.visibleFrame.maxX - screenPadding - panelWidth
+        let originX = max(minX, min(self.anchorFrameOnScreen.minX, maxX))
+
+        return PanelPlacement(
+            frame: CGRect(x: originX, y: anchorBottomY - panelHeight, width: panelWidth, height: panelHeight),
+            lockedOriginX: nil,
+            attachmentSide: nil)
+    }
+
     func sideAttachedPlacement(
         contentSize: CGSize,
         preferredWidth: CGFloat?,

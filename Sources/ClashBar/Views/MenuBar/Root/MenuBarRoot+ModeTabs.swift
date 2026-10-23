@@ -3,6 +3,26 @@ import SwiftUI
 // swiftlint:disable:next type_name
 private typealias T = MenuBarLayoutTokens
 
+private struct FolderTabShape: Shape {
+    // Keep the bottom edge open to join the content area. / 底边留空，与内容区相接。
+    func path(in rect: CGRect) -> Path {
+        let bounds = rect.insetBy(dx: T.stroke / 2, dy: T.stroke / 2)
+        let radius = min(T.cornerRadius, bounds.width / 2, bounds.height)
+        var path = Path()
+        path.move(to: CGPoint(x: bounds.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: bounds.minX, y: bounds.minY + radius))
+        path.addQuadCurve(
+            to: CGPoint(x: bounds.minX + radius, y: bounds.minY),
+            control: CGPoint(x: bounds.minX, y: bounds.minY))
+        path.addLine(to: CGPoint(x: bounds.maxX - radius, y: bounds.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: bounds.maxX, y: bounds.minY + radius),
+            control: CGPoint(x: bounds.maxX, y: bounds.minY))
+        path.addLine(to: CGPoint(x: bounds.maxX, y: rect.maxY))
+        return path
+    }
+}
+
 extension MenuBarRootView {
     private struct SegmentedControlStyle {
         let isMode: Bool
@@ -14,32 +34,12 @@ extension MenuBarRootView {
             self.isMode ? "mode-segmented-selection-background" : "tab-segmented-selection-background"
         }
 
-        var selectionIndicatorID: String {
-            self.isMode ? "mode-segmented-selection-indicator" : "tab-segmented-selection-indicator"
-        }
-
-        var indicatorWidth: CGFloat {
-            self.isMode ? 0 : 16
-        }
-
-        var indicatorBottomPadding: CGFloat {
-            self.isMode ? 0 : 2
-        }
-
         var cornerRadius: CGFloat {
-            self.isMode ? 10 : 0
+            self.isMode ? 10 : T.cornerRadius
         }
 
         var rowHeight: CGFloat {
-            self.isMode ? 38 : 26
-        }
-
-        var stackSpacing: CGFloat {
-            self.isMode ? T.space1 : 0
-        }
-
-        var contentVerticalPadding: CGFloat {
-            self.isMode ? 3 : 2
+            self.isMode ? 32 : 28
         }
 
         func selectedFillOpacity(isDark: Bool) -> CGFloat {
@@ -57,10 +57,6 @@ extension MenuBarRootView {
         func selectedForegroundOpacity(isDark: Bool) -> CGFloat {
             self.isMode ? (isDark ? 0.96 : 0.88) : (isDark ? 0.96 : 0.92)
         }
-
-        func selectedIconOpacity(isDark: Bool) -> CGFloat {
-            self.isMode ? (isDark ? 0.88 : 0.80) : (isDark ? 0.98 : 0.94)
-        }
     }
 
     var modeAndTabSection: some View {
@@ -75,16 +71,13 @@ extension MenuBarRootView {
         HStack(spacing: T.space2) {
             self.modeSegmentButton(
                 title: tr("ui.mode.rule"),
-                mode: .rule,
-                symbol: "shield.lefthalf.filled")
+                mode: .rule, symbol: "shield.lefthalf.filled")
             self.modeSegmentButton(
                 title: tr("ui.mode.global"),
-                mode: .global,
-                symbol: "globe")
+                mode: .global, symbol: "globe")
             self.modeSegmentButton(
                 title: tr("ui.mode.direct"),
-                mode: .direct,
-                symbol: "bolt.fill")
+                mode: .direct, symbol: "bolt.fill")
         }
         .padding(T.space1)
         .frame(width: contentWidth)
@@ -107,41 +100,40 @@ extension MenuBarRootView {
                 switchingMode = nil
             }
         } label: {
-            ZStack(alignment: .bottom) {
-                VStack(spacing: style.stackSpacing) {
-                    if switchingThisMode {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(self.segmentedAccentColor(style: style))
-                    } else {
-                        Image(systemName: symbol)
-                            .font(.app(size: T.FontSize.caption, weight: .bold))
-                            .foregroundStyle(self.segmentedIconColor(
-                                style: style,
-                                selected: selected,
-                                hovered: hovered))
-                    }
-
-                    Text(title)
-                        .font(.app(size: T.FontSize.caption, weight: .semibold))
-                        .lineLimit(1)
-                        .foregroundStyle(self.segmentedLabelColor(style: style, selected: selected, hovered: hovered))
-                }
-                .padding(.vertical, style.contentVerticalPadding)
-                .frame(maxWidth: .infinity)
-                .frame(height: style.rowHeight)
-                .background(self.segmentedButtonBackground(style: style, selected: selected, hovered: hovered))
-                .contentShape(RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous))
+            HStack(spacing: T.space4) {
+                Image(systemName: symbol)
+                    .foregroundStyle(selected
+                        ? self.segmentedAccentColor(style: style).opacity(isDarkAppearance ? 0.88 : 0.80)
+                        : nativeTertiaryLabel)
+                Text(title)
+                    .lineLimit(1)
             }
+            .font(.app(size: T.FontSize.callout, weight: .semibold))
+            .foregroundStyle(self.segmentedLabelColor(style: style, selected: selected, hovered: hovered))
+            .frame(maxWidth: .infinity)
+            .frame(height: style.rowHeight)
+            .overlay(alignment: .trailing) {
+                if switchingThisMode {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .frame(width: 10, height: 10)
+                        .tint(self.segmentedAccentColor(style: style))
+                        .padding(.trailing, T.space6)
+                }
+            }
+            .background(self.segmentedButtonBackground(style: style, selected: selected, hovered: hovered))
+            .contentShape(RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
+        .disabled(!appViewModel.isModeSwitchEnabled || switchingMode != nil)
+        .accessibilityAddTraits(selected ? .isSelected : [])
         .onHover { hoveredMode = self.nextHovered(current: hoveredMode, target: mode, isHovering: $0) }
-        .animation(.snappy(duration: 0.18), value: appViewModel.currentMode)
+        .animation(self.tabSelectionAnimation, value: appViewModel.currentMode)
         .animation(.easeOut(duration: 0.12), value: hoveredMode)
     }
 
     var topTabs: some View {
-        HStack(spacing: T.space2) {
+        HStack(spacing: 0) {
             ForEach(RootTab.allCases, id: \.self) { tab in
                 self.tabSegmentButton(tab)
             }
@@ -156,33 +148,43 @@ extension MenuBarRootView {
 
         return Button {
             guard self.rootViewModel.currentTab != tab else { return }
-            withAnimation(.snappy(duration: 0.18)) {
-                self.rootViewModel.syncCurrentTab(tab)
-            }
+            self.previousTab = self.rootViewModel.currentTab
+            self.rootViewModel.syncCurrentTab(tab)
         } label: {
-            ZStack(alignment: .bottom) {
-                Text(self.tr(tab.titleKey))
-                    .font(.app(size: T.FontSize.body, weight: selected ? .semibold : .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(T.minimumScale)
-                    .foregroundStyle(self.segmentedLabelColor(style: style, selected: selected, hovered: hovered))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: style.rowHeight)
-
-                if selected {
-                    Capsule(style: .continuous)
-                        .fill(self.segmentedAccentColor(style: style))
-                        .frame(width: style.indicatorWidth, height: 2)
-                        .padding(.bottom, style.indicatorBottomPadding)
-                        .matchedGeometryEffect(id: style.selectionIndicatorID, in: self.segmentedSelectionNamespace)
-                }
-            }
-            .contentShape(Rectangle())
+            Text(self.tr(tab.titleKey))
+                .font(.app(size: T.FontSize.body, weight: selected ? .semibold : .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(T.minimumScale)
+                .foregroundStyle(self.segmentedLabelColor(style: style, selected: selected, hovered: hovered))
+                .frame(maxWidth: .infinity)
+                .frame(height: style.rowHeight)
+                .background(self.tabButtonBackground(selected: selected))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
         .onHover { hoveredTab = self.nextHovered(current: hoveredTab, target: tab, isHovering: $0) }
-        .animation(.snappy(duration: 0.18), value: self.rootViewModel.currentTab)
+        .animation(self.tabSelectionAnimation, value: self.rootViewModel.currentTab)
         .animation(.easeOut(duration: 0.12), value: hoveredTab)
+    }
+
+    @ViewBuilder
+    private func tabButtonBackground(selected: Bool) -> some View {
+        if selected {
+            FolderTabShape()
+                .fill(self.nativeControlFill.opacity(isDarkAppearance ? 0.54 : 0.38))
+                .overlay {
+                    FolderTabShape().stroke(self.nativeSeparator.opacity(0.65), lineWidth: T.stroke)
+                }
+                .matchedGeometryEffect(
+                    id: SegmentedControlStyle.tab.selectionBackgroundID,
+                    in: self.segmentedSelectionNamespace)
+        } else {
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                self.nativeSeparator.opacity(0.65).frame(height: T.stroke)
+            }
+        }
     }
 
     @ViewBuilder
@@ -192,7 +194,7 @@ extension MenuBarRootView {
         hovered: Bool) -> some View
     {
         let shape = RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
-        if selected, style.isMode {
+        if selected {
             shape
                 .fill(self.segmentedSelectionFill(style: style))
                 .overlay {
@@ -220,18 +222,6 @@ extension MenuBarRootView {
         return nativeSecondaryLabel
     }
 
-    private func segmentedIconColor(style: SegmentedControlStyle, selected: Bool, hovered: Bool) -> Color {
-        if selected {
-            return style.isMode
-                ? self.segmentedAccentColor(style: style).opacity(style.selectedIconOpacity(isDark: isDarkAppearance))
-                : self.segmentedSelectedForeground(style: style)
-        }
-        if hovered {
-            return nativeSecondaryLabel.opacity(isDarkAppearance ? 0.96 : 0.84)
-        }
-        return nativeTertiaryLabel
-    }
-
     private func segmentedAccentColor(style: SegmentedControlStyle) -> Color {
         isDarkAppearance
             ? (style.isMode ? Color(red: 0.56, green: 0.77, blue: 0.98) : Color(red: 0.50, green: 0.72, blue: 0.95))
@@ -248,10 +238,5 @@ extension MenuBarRootView {
 
     private func segmentedHoverFill(style: SegmentedControlStyle) -> Color {
         nativeHoverFill.opacity(style.hoverFillOpacity(isDark: isDarkAppearance))
-    }
-
-    private func segmentedSelectedForeground(style: SegmentedControlStyle) -> Color {
-        self.segmentedAccentColor(style: style)
-            .opacity(style.selectedForegroundOpacity(isDark: self.isDarkAppearance))
     }
 }
